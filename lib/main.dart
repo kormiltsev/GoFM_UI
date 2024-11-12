@@ -5,6 +5,8 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/gestures.dart';
 
 void main() {
   runApp(MyApp());
@@ -165,8 +167,16 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
   }
 
  // Show Info Popup with TextField to Update Stream URL
+  Future<void> _launchURL(String url) async {
+  if (await canLaunch(url)) {
+    await launch(url);
+  } else {
+    throw 'Could not launch $url';
+  }
+  }
+
   void _showInfo(BuildContext context) {
-    String newUrl = streamIP;
+    String newUrl = streamIP; // Assuming streamIP is defined in the state
 
     showDialog(
       context: context,
@@ -180,9 +190,27 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
                 style: TextStyle(fontSize: 18),
               ),
               SizedBox(height: 4),
-              Text(
-                "Check https://github.com/kormiltsev/GoFM to build bacend",
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+              RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: "Expecting GoFM server like this: \n",
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    TextSpan(
+                      text: "https://github.com/kormiltsev/GoFM",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue,
+                        decoration: TextDecoration.underline,
+                      ),
+                      recognizer: TapGestureRecognizer()
+                        ..onTap = () {
+                          _launchURL("https://github.com/kormiltsev/GoFM");
+                        },
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -212,6 +240,9 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
               child: Text("Save"),
               onPressed: () {
                 setState(() {
+                  if (!newUrl.startsWith('http://') && !newUrl.startsWith('https://')) {
+                    newUrl = 'http://$newUrl';
+                  }
                   streamIP = newUrl;
                   streamUrl = Uri.parse(streamIP).replace(path: '/fm').toString();
                 });
@@ -303,7 +334,7 @@ class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
                   IconButton(
                     icon: Icon(
                       isPlaying && volume > 0.0 ? Icons.pause_circle_filled_rounded : Icons.play_circle_fill_rounded,
-                      size: 45,
+                      size: 55,
                       color: Colors.white,
                     ),
                     onPressed: _togglePlayPause,
